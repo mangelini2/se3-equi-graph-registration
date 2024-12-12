@@ -723,6 +723,8 @@ def train_one_epoch(model, dataloader, optimizer, device, epoch, writer, use_poi
     running_pose_loss = 0.0  # Track pose loss
 
     for batch_idx, (corr, labels, src_pts, tar_pts, src_features, tgt_features, gt_pose) in enumerate(dataloader):
+        if corr.dim() == 3 and corr.size(0) == 1:
+            batched=True
         # Check if any returned data is None, and skip if so
         if corr is None or labels is None or src_pts is None or tar_pts is None or src_features is None or tgt_features is None or gt_pose is None:
             print(f"Skipping batch {batch_idx} due to missing data.")
@@ -757,7 +759,7 @@ def train_one_epoch(model, dataloader, optimizer, device, epoch, writer, use_poi
         # Perform the computation
         T_norm = (T - xyz_1_center + torch.bmm(R, xyz_0_center)).to(device)  # Result shape: [1, 3, 1]
         gt_pose[:, :3, :3] = R
-        gt_pose[:, :3, 3] = T_norm.transpose(1, 2)
+        gt_pose[:, :3, 3] = T_norm.squeeze()
         # T = T.squeeze(-1)  # Shape: [B, 3] -> T is already [B, 3, 1], no need for transpose.
         # T = T.transpose(1, 2) 
         # print(R.shape)
@@ -799,8 +801,11 @@ def train_one_epoch(model, dataloader, optimizer, device, epoch, writer, use_poi
         if labels.dim() == 3 and labels.size(0) == 1:
             labels = labels.squeeze(0)
 
-        graph_idx_0 = knn_graph(xyz_0, k=k, loop=False)
-        graph_idx_1 = knn_graph(xyz_1, k=k, loop=False)
+        xyz_0_flat = xyz_0.view(-1, xyz_0.size(-1))
+        xyz_1_flat = xyz_1.view(-1, xyz_1.size(-1))
+        batch_vector = torch.repeat_interleave(torch.arange(batch_size), xyz_0.size(1)).to(device)
+        graph_idx_0 = knn_graph(xyz_0_flat,batch=batch_vector, k=k, loop=False)
+        graph_idx_1 = knn_graph(xyz_1_flat,batch=batch_vector, k=k, loop=False)
 
 
         # Descriptor generation using PointNet or directly using feat_0/feat_1
