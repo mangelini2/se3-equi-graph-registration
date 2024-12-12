@@ -811,8 +811,8 @@ def train_one_epoch(model, dataloader, optimizer, device, epoch, writer, use_poi
         # Descriptor generation using PointNet or directly using feat_0/feat_1
         if use_pointnet:
             feature_encoder = PointNet().to(device)
-            feat_0 = feature_encoder(xyz_0, graph_idx_0, None)  # Descriptor for source
-            feat_1 = feature_encoder(xyz_1, graph_idx_1, None)  # Descriptor for target
+            feat_0 = feature_encoder(xyz_0_flat, graph_idx_0, None)  # Descriptor for source
+            feat_1 = feature_encoder(xyz_1_flat, graph_idx_1, None)  # Descriptor for target
         # else:
         #     feat_0 = feat_0  # Use pre-computed features directly
         #     feat_1 = feat_1  # Use pre-computed features directly
@@ -825,14 +825,15 @@ def train_one_epoch(model, dataloader, optimizer, device, epoch, writer, use_poi
         # feats_0 = feature_encoder(xyz_0, graph_idx_0, None)  # Descriptor for source
         # feats_1 = feature_encoder(xyz_1, graph_idx_1, None)  # Descriptor for target
         # Initialize edges and edge attributes for source and target
-        edges_0, edge_attr_0 = get_edges_batch(graph_idx_0, xyz_0.size(0), 1)
-        edges_1, edge_attr_1 = get_edges_batch(graph_idx_1, xyz_1.size(0), 1)
+        edges_0, edge_attr_0 = get_edges_batch(graph_idx_0, xyz_0.size(-2), batch_size)
+        edges_1, edge_attr_1 = get_edges_batch(graph_idx_1, xyz_1.size(-2), batch_size)
 
         # Zero the gradients
         optimizer.zero_grad()
-
+        corr_flat=corr.view(-1)
+        labels_flat=labels.view(-1)
         # # Forward pass through the model
-        quaternion, translation, corr_loss = model(feat_0, xyz_0, edges_0, edge_attr_0, feat_1, xyz_1, edges_1, edge_attr_1, corr, labels)
+        quaternion, translation, corr_loss = model(feat_0, xyz_0_flat, edges_0, edge_attr_0, feat_1, xyz_1_flat, edges_1, edge_attr_1, corr_flat, labels_flat)
         #corr_loss
 
         # # Compute pose loss
