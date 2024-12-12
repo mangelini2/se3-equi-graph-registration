@@ -56,7 +56,7 @@ def evaluate_pairwise_frames(gt_file_list, pred_file_list, gt_dir, pred_dir, sav
         with open(gt_file_path, 'rb') as f:
             gt_data = pickle.load(f)
 
-        gt_pose = gt_data['gt_pose']  # 4x4 ground truth pose matrix
+        gt_pose = gt_data['pose_gt']  # 4x4 ground truth pose matrix
         src_pts = gt_data['xyz_0']  # Source point cloud
         tgt_pts = gt_data['xyz_1']  # Target point cloud
 
@@ -101,12 +101,13 @@ def evaluate_pairwise_frames(gt_file_list, pred_file_list, gt_dir, pred_dir, sav
         result_file.write(f"Average F1 Score: {avg_f1_score:.4f}\n")
 
 # Example usage:
-gt_file_list = ["0001.pkl", "0002.pkl", "0003.pkl"]  # List of ground truth files
-pred_file_list = ["0001.txt", "0002.txt", "0003.txt"]  # List of prediction files
 
-gt_dir = "./ground_truth"  # Directory with ground truth files
-pred_dir = "./predictions"  # Directory with predicted results
+
+gt_dir = "/app/dataset/3DMatch_FCGF_Feature/test_3dmatch"  # Directory with ground truth files
+pred_dir = "/app/dataset/3DMatch_FCGF_Feature/test_3dres"  # Directory with predicted results
 save_dir = "./results"  # Directory to save evaluation results
+gt_file_list = os.listdir(gt_dir)  # List of ground truth files
+pred_file_list = os.listdir(pred_dir)  # List of prediction files
 
 evaluate_pairwise_frames(gt_file_list, pred_file_list, gt_dir, pred_dir, save_dir)
 

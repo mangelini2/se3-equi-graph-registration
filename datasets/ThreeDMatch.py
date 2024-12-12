@@ -440,7 +440,7 @@ class ThreeDMatchTest(data.Dataset):
         #         self.gt_trans[f'{scene}@{k}'] = v
         # Read all the filenames from the txt file
         with open(os.path.join(self.root, 'test_files.txt'), 'r') as f:
-            self.test_file_list = [line.strip() for line in f.readlines()]
+            self.file_list = [line.strip() for line in f.readlines()]
 
     def __getitem__(self, index):
         file_name = self.file_list[index]
@@ -564,7 +564,7 @@ class ThreeDMatchTest(data.Dataset):
                   
 
     def __len__(self):
-        return len(self.test_file_list)
+        return len(self.file_list)
     
     def __loadlog__(self, gtpath):
         traj = {}

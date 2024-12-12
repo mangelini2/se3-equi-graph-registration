@@ -1,0 +1,3 @@
+[submodule "PointTransformerV3"]
+	path = PointTransformerV3
+	url = https://github.com/Pointcept/PointTransformerV3.git

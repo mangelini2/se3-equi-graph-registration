@@ -1154,6 +1154,17 @@ def evaluate_model(checkpoint_path, model, dataloader, device, use_pointnet=Fals
 
             # KNN graph computation (same as in training)
             k = 12
+            if xyz_0.dim() == 3 and xyz_0.size(0) == 1:
+                xyz_0 = xyz_0.squeeze(0)
+            if xyz_1.dim() == 3 and xyz_1.size(0) == 1:
+                xyz_1 = xyz_1.squeeze(0)
+            if gt_pose.dim() == 3 and gt_pose.size(0) == 1:
+                gt_pose = gt_pose.squeeze(0)
+            if corr.dim() == 3 and corr.size(0) == 1:
+                corr = corr.squeeze(0)
+            if labels.dim() == 3 and labels.size(0) == 1:
+                labels = labels.squeeze(0)
+
             graph_idx_0 = knn_graph(xyz_0, k=k, loop=False)
             graph_idx_1 = knn_graph(xyz_1, k=k, loop=False)
 
@@ -1165,22 +1176,39 @@ def evaluate_model(checkpoint_path, model, dataloader, device, use_pointnet=Fals
             # Get edges and edge attributes
             edges_0, edge_attr_0 = get_edges_batch(graph_idx_0, xyz_0.size(0), 1)
             edges_1, edge_attr_1 = get_edges_batch(graph_idx_1, xyz_1.size(0), 1)
-
+            if feat_0.dim() == 3 and feat_0.size(0) == 1:
+                feat_0 = feat_0.squeeze(0)
+            if feat_1.dim() == 3 and feat_1.size(0) == 1:
+                feat_1 = feat_1.squeeze(0)
             # Forward pass through the model (no backprop in evaluation)
             quaternion, translation, corr_loss = model(feat_0, xyz_0, edges_0, edge_attr_0, feat_1, xyz_1, edges_1, edge_attr_1, corr, labels)
-
+            with open(f'/app/dataset/3DMatch_FCGF_Feature/test_3dres/{batch_idx+1}.txt', 'w') as file:
+                # Write values of the first tensor
+                file.write(' '.join(map(str, quaternion.cpu().tolist()))+' ')
+                # Write values of the second tensor
+                file.write(' '.join(map(str, translation.cpu().tolist())) + '\n')
             # Convert quaternion and translation to a homogeneous transform matrix
-            for i in range(quaternion.size(0)):  # Process each batch item
-                rot_matrix = quaternion_to_matrix(quaternion[i], device=device)  # Ensure quaternion to matrix is on the correct device
-                trans_vector = translation[i]
+            # for i in range(quaternion.size(0)):  # Process each batch item
+            #     rot_matrix = quaternion_to_matrix(quaternion[i], device=device)  # Ensure quaternion to matrix is on the correct device
+            #     trans_vector = translation[i]
+            #
+            #     # Create a 4x4 homogeneous transformation matrix
+            #     hom_matrix = torch.eye(4, device=device)  # Create on device
+            #     hom_matrix[:3, :3] = rot_matrix
+            #     hom_matrix[:3, 3] = trans_vector
+            #
+            #     print(f"Predicted Pose (Batch {batch_idx}, Item {i}):")
+            #     print(hom_matrix)
+            rot_matrix = quaternion_to_matrix(quaternion, device=device)  # Ensure quaternion to matrix is on the correct device
+            trans_vector = translation
 
-                # Create a 4x4 homogeneous transformation matrix
-                hom_matrix = torch.eye(4, device=device)  # Create on device
-                hom_matrix[:3, :3] = rot_matrix
-                hom_matrix[:3, 3] = trans_vector
+            # Create a 4x4 homogeneous transformation matrix
+            hom_matrix = torch.eye(4, device=device)  # Create on device
+            hom_matrix[:3, :3] = rot_matrix
+            hom_matrix[:3, 3] = trans_vector
 
-                print(f"Predicted Pose (Batch {batch_idx}, Item {i}):")
-                print(hom_matrix)
+            print(f"Predicted Pose (Item {batch_idx}):")
+            print(hom_matrix)
 
             # Compute pose loss
             pose_losses = pose_loss(quaternion, translation, gt_pose, delta=1.5)
@@ -1204,7 +1232,7 @@ def get_args():
     parser = argparse.ArgumentParser(description="Training a Pose Regression Model")
     
     # Add arguments with default values
-    parser.add_argument('--base_dir', type=str, default='/home/eavise3d/3DMatch_FCGF_Feature_32_transform', help='Path to the dataset')
+    parser.add_argument('--base_dir', type=str, default='/app/dataset/3DMatch_FCGF_Feature', help='Path to the dataset')
     parser.add_argument('--batch_size', type=int, default=1, help='Batch size for training')
     parser.add_argument('--learning_rate', type=float, default=2e-5, help='Learning rate for the optimizer')
     parser.add_argument('--num_epochs', type=int, default=500, help='Number of epochs for training')
@@ -1217,7 +1245,7 @@ def get_args():
     parser.add_argument('--n_layers', type=int, default=5, help='Number of layers in EGNN')
     parser.add_argument('--mode', type=str, default="train", choices=["train", "val"], help='Mode to run the model (train/val)')
     parser.add_argument('--lossBeta', type=float, default=0.1, help='Correspondence loss weights')
-    parser.add_argument('--savepath', type=str, default='./checkpoints/model_checkpoint.pth', help='Path to the dataset')
+    parser.add_argument('--savepath', type=str, default='/opt/project/savepath/checkpoints', help='checkpoint save directory')
 
     return parser.parse_args()
 
@@ -1243,10 +1271,10 @@ if __name__ == "__main__":
     mode = args.mode
     savepath = args.savepath
 
-    mode = "train" ### set to "eval" for inference mode
+    #mode = "train" ### set to "eval" for inference mode
 
     train_dataset = ThreeDMatchTrainVal(root=base_dir, 
-                            split=mode,   
+                            split='train',
                             descriptor='fcgf',
                             in_dim=6,
                             inlier_threshold=0.10,
@@ -1288,17 +1316,17 @@ if __name__ == "__main__":
 
     # Initialize TensorBoard writer
     # Ensure the directory exists
-    if not os.path.exists('runs/pose_regression_experiment'):
-        os.makedirs('runs/pose_regression_experiment')
+    if not os.path.exists('/opt/project/runs/pose_regression_experiment'):
+        os.makedirs('/opt/project/runs/pose_regression_experiment')
         print("Created directory for log init runs/pose_regression_experiment")
-    writer = SummaryWriter(log_dir='runs/pose_regression_experiment')
+    writer = SummaryWriter(log_dir='/opt/project/runs/pose_regression_experiment')
 
     # # Create DataLoaders
     if mode == "train":
         train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
         val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
-    elif mode == "eval":
-        test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
+    elif mode == "val":
+        val_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
 
     egnn = EGNN(in_node_nf=in_node_nf, hidden_nf=hidden_node_nf, out_node_nf=out_node_nf, in_edge_nf=1, n_layers=n_layers)
     egnn.to(dev)
@@ -1311,7 +1339,7 @@ if __name__ == "__main__":
     ##########comment these lines during evaluation mode#################
     if mode == "train":
         train_model(cross_attention_model, train_loader, val_loader, num_epochs=num_epochs, \
-                learning_rate=learning_rate, device=dev, writer=writer, use_pointnet=False, log_interval=10, beta=0.1, save_path=savepath)
-    elif mode == "test":
-        checkpoint_path = "./checkpoints/model_epoch_16.pth" #####specify the right path of the saved checkpint#######
+                learning_rate=learning_rate, device=dev, writer=writer, use_pointnet=True, log_interval=10, beta=0.1, save_path=savepath)
+    elif mode == "val":
+        checkpoint_path = "/opt/project/savepath/checkpoints/model_checkpoint.pth/model_epoch_39.pth" #####specify the right path of the saved checkpoint#######
         avg_loss, avg_pose_loss, avg_corr_loss = evaluate_model(checkpoint_path, cross_attention_model, val_loader, device=dev, use_pointnet=False)

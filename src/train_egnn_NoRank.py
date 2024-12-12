@@ -342,14 +342,14 @@ class EGNN(nn.Module):
                                               act_fn=act_fn, residual=residual, attention=attention,
                                               normalize=normalize, tanh=tanh))
 
-    def forward(self, h, x, edges, edge_attr, batch_size):
+    def forward(self, h, x, edges, edge_attr, batch_size=1):
         """
         h: Node features tensor of shape [batch_size, num_nodes, node_features]
         x: Node coordinates tensor of shape [batch_size, num_nodes, 3]
         edges: Edge index tensor of shape [2, num_edges] (for each graph)
         edge_attr: Edge attributes tensor of shape [batch_size * num_edges, edge_features]
         """
-        batch_size, num_nodes, _ = h.size()
+        batch_size, num_nodes = h.size()
         h = self.embedding_in(h.view(-1, h.size(-1)))  # Flatten batch for embedding
         x = x.view(-1, 3)  # Flatten batch for coordinates
 
