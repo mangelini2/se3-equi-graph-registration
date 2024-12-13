@@ -1232,7 +1232,7 @@ def get_args():
     parser = argparse.ArgumentParser(description="Training a Pose Regression Model")
     
     # Add arguments with default values
-    parser.add_argument('--base_dir', type=str, default='/app/dataset/KITTI_FPFH_Feature', help='Path to the dataset')
+    parser.add_argument('--base_dir', type=str, default='/app/dataset/', help='Path to the dataset')
     parser.add_argument('--batch_size', type=int, default=1, help='Batch size for training')
     parser.add_argument('--dataset', type=str, default='KITTI', help='name of the used dataset (KITTI/ThreeDMatch (d))')
     parser.add_argument('--learning_rate', type=float, default=2e-5, help='Learning rate for the optimizer')
@@ -1256,7 +1256,7 @@ if __name__ == "__main__":
     # print("###edge batch begins 2###########")
     # # Set up the data and training parameters
     # Load the arguments
-    base_dir = args.base_dir
+
     batch_size = args.batch_size
     learning_rate = args.learning_rate
     num_epochs = args.num_epochs
@@ -1274,6 +1274,7 @@ if __name__ == "__main__":
 
     #mode = "train" ### set to "eval" for inference mode
     if args.dataset == 'KITTI':
+        base_dir = args.base_dir + 'KITTI_FPFH_Feature/'
         train_dataset = KITTItrainVal(root=base_dir,
                                             split='train'
                                             )
@@ -1285,6 +1286,7 @@ if __name__ == "__main__":
         test_dataset = KITTItest(root=base_dir,
                                        split='test')
     else:
+        base_dir = args.base_dir + '3DMatch_FCGF_Feature/'
         train_dataset = ThreeDMatchTrainVal(root=base_dir,
                                 split='train',
                                 descriptor='fcgf',
