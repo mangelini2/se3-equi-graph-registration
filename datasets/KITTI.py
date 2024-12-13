@@ -195,7 +195,7 @@ class KITTItrainVal(data.Dataset):
         file_name = self.file_list[index]
 
         # Load data from .pkl file
-        with open(os.path.join(self.root, 'train_3dmatch', file_name), 'rb') as f:
+        with open(os.path.join(self.root, 'train_kitti', file_name), 'rb') as f:
             data = pickle.load(f)
 
         # Extract data

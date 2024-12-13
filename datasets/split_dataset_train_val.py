@@ -37,8 +37,8 @@ def save_file_list(file_list, output_file):
 
 def main():
     # Directory containing the .pkl files
-    pkl_directory = '/home/eavise3d/3DMatch_FCGF_Feature'
-    folder = 'test_3dmatch'
+    pkl_directory = '/app/dataset/KITTI_FPFH_Feature'
+    folder = 'test_kitti'
     # Split ratio (train/val)
     train_ratio = 0.85
     

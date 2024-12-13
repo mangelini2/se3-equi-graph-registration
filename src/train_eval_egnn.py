@@ -1232,8 +1232,9 @@ def get_args():
     parser = argparse.ArgumentParser(description="Training a Pose Regression Model")
     
     # Add arguments with default values
-    parser.add_argument('--base_dir', type=str, default='/app/dataset/3DMatch_FCGF_Feature', help='Path to the dataset')
+    parser.add_argument('--base_dir', type=str, default='/app/dataset/KITTI_FPFH_Feature', help='Path to the dataset')
     parser.add_argument('--batch_size', type=int, default=1, help='Batch size for training')
+    parser.add_argument('--dataset', type=str, default='KITTI', help='name of the used dataset (KITTI/ThreeDMatch (d))')
     parser.add_argument('--learning_rate', type=float, default=2e-5, help='Learning rate for the optimizer')
     parser.add_argument('--num_epochs', type=int, default=500, help='Number of epochs for training')
     parser.add_argument('--num_node', type=int, default=2048, help='Number of nodes in the graph')
@@ -1245,7 +1246,7 @@ def get_args():
     parser.add_argument('--n_layers', type=int, default=5, help='Number of layers in EGNN')
     parser.add_argument('--mode', type=str, default="train", choices=["train", "val"], help='Mode to run the model (train/val)')
     parser.add_argument('--lossBeta', type=float, default=0.1, help='Correspondence loss weights')
-    parser.add_argument('--savepath', type=str, default='/opt/project/savepath/checkpoints', help='checkpoint save directory')
+    parser.add_argument('--savepath', type=str, default='/opt/project/savepath/checkpoints2', help='checkpoint save directory')
 
     return parser.parse_args()
 
@@ -1272,45 +1273,56 @@ if __name__ == "__main__":
     savepath = args.savepath
 
     #mode = "train" ### set to "eval" for inference mode
+    if args.dataset == 'KITTI':
+        train_dataset = KITTItrainVal(root=base_dir,
+                                            split='train'
+                                            )
 
-    train_dataset = ThreeDMatchTrainVal(root=base_dir, 
-                            split='train',
-                            descriptor='fcgf',
-                            in_dim=6,
-                            inlier_threshold=0.10,
-                            num_node=2048, 
-                            use_mutual=True,
-                            downsample=0.03, 
-                            augment_axis=1, 
-                            augment_rotation=1.0,
-                            augment_translation=0.01,
-                        )
+        val_dataset = KITTItrainVal(root=base_dir,
+                                          split='val'
+                                          )
 
-    val_dataset = ThreeDMatchTrainVal(root=base_dir, 
-                            split='val',   
-                            descriptor='fcgf',
-                            in_dim=6,
-                            inlier_threshold=0.10,
-                            num_node=2048, 
-                            use_mutual=True,
-                            downsample=0.03, 
-                            augment_axis=1, 
-                            augment_rotation=1.0,
-                            augment_translation=0.01,
-                        )
+        test_dataset = KITTItest(root=base_dir,
+                                       split='test')
+    else:
+        train_dataset = ThreeDMatchTrainVal(root=base_dir,
+                                split='train',
+                                descriptor='fcgf',
+                                in_dim=6,
+                                inlier_threshold=0.10,
+                                num_node=2048,
+                                use_mutual=True,
+                                downsample=0.03,
+                                augment_axis=1,
+                                augment_rotation=1.0,
+                                augment_translation=0.01,
+                            )
 
-    test_dataset = ThreeDMatchTest(root=base_dir, 
-                            split='test',   
-                            descriptor='fcgf',
-                            in_dim=6,
-                            inlier_threshold=0.10,
-                            num_node=2048, 
-                            use_mutual=True,
-                            downsample=0.03, 
-                            augment_axis=1, 
-                            augment_rotation=1.0,
-                            augment_translation=0.01,
-                        )
+        val_dataset = ThreeDMatchTrainVal(root=base_dir,
+                                split='val',
+                                descriptor='fcgf',
+                                in_dim=6,
+                                inlier_threshold=0.10,
+                                num_node=2048,
+                                use_mutual=True,
+                                downsample=0.03,
+                                augment_axis=1,
+                                augment_rotation=1.0,
+                                augment_translation=0.01,
+                            )
+
+        test_dataset = ThreeDMatchTest(root=base_dir,
+                                split='test',
+                                descriptor='fcgf',
+                                in_dim=6,
+                                inlier_threshold=0.10,
+                                num_node=2048,
+                                use_mutual=True,
+                                downsample=0.03,
+                                augment_axis=1,
+                                augment_rotation=1.0,
+                                augment_translation=0.01,
+                            )
     # Instantiate the dataset
 
 
