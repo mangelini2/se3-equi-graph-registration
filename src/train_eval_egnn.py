@@ -285,7 +285,18 @@ class E_GCL(nn.Module):
 
     def coord2radial(self, edge_index, coord):
         row, col = edge_index
+        cpu_row = row.to('cpu')
+        cpu_col = col.to('cpu')
+        cpu_coord = coord.to('cpu')
+        print(coord[row].size())
+        print(coord[col].size())
         coord_diff = coord[row] - coord[col]
+        print(coord_diff.size())
+        test=coord_diff.to('cpu')
+        print(coord_diff[0,0,0,:])
+        a=coord_diff**2
+        b=torch.sum(a, -1)
+        c=b.unsqueeze(-1)
         radial = torch.sum(coord_diff**2, -1).unsqueeze(-1)
         if self.normalize:
             norm = torch.sqrt(radial).detach() + self.epsilon
@@ -342,6 +353,7 @@ class EGNN(nn.Module):
 
     def forward(self, h, x, edges, edge_attr):
         # self.to(self.device)
+        h_cpu=h.to('cpu')
         h = self.embedding_in(h)
         for i in range(0, self.n_layers):
             h, x, _ = self._modules["gcl_%d" % i](h, edges, x, edge_attr=edge_attr)
@@ -790,16 +802,16 @@ def train_one_epoch(model, dataloader, optimizer, device, epoch, writer, use_poi
         k = 12
         ####### remove the batch size when it is one ##############
         # Squeeze the first dimension if it's 1 (e.g., torch.Size([1, 2048, 3]) -> torch.Size([2048, 3]))
-        if xyz_0.dim() == 3 and xyz_0.size(0) == 1:
-            xyz_0 = xyz_0.squeeze(0)
-        if xyz_1.dim() == 3 and xyz_1.size(0) == 1:
-            xyz_1 = xyz_1.squeeze(0)
-        if gt_pose.dim() == 3 and gt_pose.size(0) == 1:
-            gt_pose = gt_pose.squeeze(0)
-        if corr.dim() == 3 and corr.size(0) == 1:
-            corr = corr.squeeze(0)
-        if labels.dim() == 3 and labels.size(0) == 1:
-            labels = labels.squeeze(0)
+        # if xyz_0.dim() == 3 and xyz_0.size(0) == 1:
+        #     xyz_0 = xyz_0.squeeze(0)
+        # if xyz_1.dim() == 3 and xyz_1.size(0) == 1:
+        #     xyz_1 = xyz_1.squeeze(0)
+        # if gt_pose.dim() == 3 and gt_pose.size(0) == 1:
+        #     gt_pose = gt_pose.squeeze(0)
+        # if corr.dim() == 3 and corr.size(0) == 1:
+        #     corr = corr.squeeze(0)
+        # if labels.dim() == 3 and labels.size(0) == 1:
+        #     labels = labels.squeeze(0)
 
         xyz_0_flat = xyz_0.view(-1, xyz_0.size(-1))
         xyz_1_flat = xyz_1.view(-1, xyz_1.size(-1))
@@ -817,10 +829,10 @@ def train_one_epoch(model, dataloader, optimizer, device, epoch, writer, use_poi
         #     feat_0 = feat_0  # Use pre-computed features directly
         #     feat_1 = feat_1  # Use pre-computed features directly
 
-        if feat_0.dim() == 3 and feat_0.size(0) == 1:
-            feat_0 = feat_0.squeeze(0)
-        if feat_1.dim() == 3 and feat_1.size(0) == 1:
-            feat_1 = feat_1.squeeze(0)
+        # if feat_0.dim() == 3 and feat_0.size(0) == 1:
+        #     feat_0 = feat_0.squeeze(0)
+        # if feat_1.dim() == 3 and feat_1.size(0) == 1:
+        #     feat_1 = feat_1.squeeze(0)
 
         # feats_0 = feature_encoder(xyz_0, graph_idx_0, None)  # Descriptor for source
         # feats_1 = feature_encoder(xyz_1, graph_idx_1, None)  # Descriptor for target
@@ -830,10 +842,19 @@ def train_one_epoch(model, dataloader, optimizer, device, epoch, writer, use_poi
 
         # Zero the gradients
         optimizer.zero_grad()
-        corr_flat=corr.view(-1)
-        labels_flat=labels.view(-1)
+
+        edges_0_batched=[]
+        edges_1_batched = []
+        edges_0_batched.append(edges_0[0].view(batch_size, -1))
+        edges_0_batched.append(edges_0[1].view(batch_size, -1))
+        edges_1_batched.append(edges_1[0].view(batch_size, -1))
+        edges_1_batched.append(edges_1[1].view(batch_size, -1))
+        edge_attr_0_batched=edge_attr_0.view(batch_size, -1,edge_attr_0.size(-1))
+        edge_attr_1_batched = edge_attr_1.view(batch_size, -1, edge_attr_1.size(-1))
+        feat_0_batched = feat_0.view(batch_size, -1, feat_0.size(-1))
+        feat_1_batched = feat_1.view(batch_size, -1, feat_1.size(-1))
         # # Forward pass through the model
-        quaternion, translation, corr_loss = model(feat_0, xyz_0_flat, edges_0, edge_attr_0, feat_1, xyz_1_flat, edges_1, edge_attr_1, corr_flat, labels_flat)
+        quaternion, translation, corr_loss = model(feat_0_batched, xyz_0, edges_0_batched, edge_attr_0_batched, feat_1_batched, xyz_1, edges_1_batched, edge_attr_1_batched, corr, labels)
         #corr_loss
 
         # # Compute pose loss
