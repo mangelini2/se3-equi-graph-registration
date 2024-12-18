@@ -1234,7 +1234,7 @@ def get_args():
     # Add arguments with default values
     parser.add_argument('--base_dir', type=str, default='/app/dataset/', help='Path to the dataset')
     parser.add_argument('--batch_size', type=int, default=1, help='Batch size for training')
-    parser.add_argument('--dataset', type=str, default='KITTI', help='name of the used dataset (KITTI/ThreeDMatch (d))')
+    parser.add_argument('--dataset', type=str, default='ThreeDMatch', help='name of the used dataset (KITTI/ThreeDMatch)')
     parser.add_argument('--learning_rate', type=float, default=2e-5, help='Learning rate for the optimizer')
     parser.add_argument('--num_epochs', type=int, default=500, help='Number of epochs for training')
     parser.add_argument('--num_node', type=int, default=2048, help='Number of nodes in the graph')
@@ -1246,7 +1246,7 @@ def get_args():
     parser.add_argument('--n_layers', type=int, default=5, help='Number of layers in EGNN')
     parser.add_argument('--mode', type=str, default="train", choices=["train", "val"], help='Mode to run the model (train/val)')
     parser.add_argument('--lossBeta', type=float, default=0.1, help='Correspondence loss weights')
-    parser.add_argument('--savepath', type=str, default='/opt/project/savepath/checkpoints2', help='checkpoint save directory')
+    parser.add_argument('--savepath', type=str, default='/opt/project/savepath/checkpoints3DMatch', help='checkpoint save directory')
 
     return parser.parse_args()
 
@@ -1353,7 +1353,7 @@ if __name__ == "__main__":
     ##########comment these lines during evaluation mode#################
     if mode == "train":
         train_model(cross_attention_model, train_loader, val_loader, num_epochs=num_epochs, \
-                learning_rate=learning_rate, device=dev, writer=writer, use_pointnet=True, log_interval=10, beta=0.1, save_path=savepath)
+                learning_rate=learning_rate, device=dev, writer=writer, use_pointnet=False, log_interval=10, beta=0.05, save_path=savepath)
     elif mode == "val":
-        checkpoint_path = "/opt/project/savepath/checkpoints/model_checkpoint.pth/model_epoch_39.pth" #####specify the right path of the saved checkpoint#######
+        checkpoint_path = "/opt/project/savepath/checkpoints2/best_checkpoint" #####specify the right path of the saved checkpoint#######
         avg_loss, avg_pose_loss, avg_corr_loss = evaluate_model(checkpoint_path, cross_attention_model, val_loader, device=dev, use_pointnet=False)
